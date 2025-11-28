@@ -10,6 +10,7 @@ import SmallGroups from './views/SmallGroups';
 import AdminDashboard from './views/AdminDashboard';
 import { NavItem } from './types';
 import { HandHeart, Users, ChevronRight, Play } from 'lucide-react';
+import ErrorBoundary from './components/ErrorBoundary';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<NavItem>(NavItem.HOME);
@@ -44,7 +45,9 @@ export default function App() {
         {activeTab !== NavItem.ADMIN && <Header activeTab={activeTab} />}
 
         <main className={`flex-1 overflow-y-auto ${activeTab === NavItem.ADMIN ? '' : 'pb-28'} scroll-smooth no-scrollbar`}>
-          {renderContent()}
+          <ErrorBoundary>
+            {renderContent()}
+          </ErrorBoundary>
         </main>
 
         {activeTab !== NavItem.ADMIN && <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />}
