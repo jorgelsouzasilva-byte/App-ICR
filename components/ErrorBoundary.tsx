@@ -10,12 +10,15 @@ interface State {
 }
 
 class ErrorBoundary extends Component<Props, State> {
-  // FIX: Removed `public` access modifiers from class members.
-  // This aligns with common React conventions and can resolve tooling issues
-  // that may misinterpret the class structure and cause the "Property 'props' does not exist" error.
-  state: State = {
-    hasError: false
-  };
+  // FIX: Changed state initialization to use a constructor.
+  // This resolves potential tooling issues with the class field syntax that can
+  // lead to "Property 'props' does not exist" errors.
+  constructor(props: Props) {
+    super(props);
+    this.state = {
+      hasError: false
+    };
+  }
 
   static getDerivedStateFromError(_: Error): State {
     // Atualiza o estado para que a próxima renderização mostre a UI de fallback.

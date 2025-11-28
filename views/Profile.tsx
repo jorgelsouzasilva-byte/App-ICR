@@ -1,28 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mail, Phone, MapPin, Edit2, Settings, Award, ArrowLeft, Bell, Lock, Shield, LogOut, ChevronRight, Camera, Save, LayoutDashboard } from 'lucide-react';
+import { User } from '../types';
 
 interface ProfileProps {
+  user: User;
   onAdminClick?: () => void;
+  onLogout: () => void;
 }
 
-export default function Profile({ onAdminClick }: ProfileProps) {
+export default function Profile({ user, onAdminClick, onLogout }: ProfileProps) {
   const [showSettings, setShowSettings] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [emailUpdates, setEmailUpdates] = useState(true);
 
-  // Profile Data State
-  const [profile, setProfile] = useState({
-    name: 'Sarah Jenkins',
-    email: 'sarah.j@example.com',
-    phone: '+1 (555) 123-4567',
-    group: 'North Hills',
-    memberSince: '2019',
-    avatar: 'https://picsum.photos/200/200'
-  });
+  // Profile Data State, now initialized from props
+  const [profile, setProfile] = useState<User>(user);
 
   // Temporary state for the edit form
   const [editForm, setEditForm] = useState(profile);
+
+  // Effect to update profile state if the user prop changes (e.g., on re-login)
+  useEffect(() => {
+    setProfile(user);
+  }, [user]);
 
   const handleOpenEdit = () => {
     setEditForm(profile);
@@ -31,6 +32,7 @@ export default function Profile({ onAdminClick }: ProfileProps) {
 
   const handleSaveProfile = () => {
     setProfile(editForm);
+    // In a real app, you'd also send this update to your backend
     setShowEditProfile(false);
   };
 
@@ -234,7 +236,10 @@ export default function Profile({ onAdminClick }: ProfileProps) {
           </section>
 
           {/* Actions */}
-          <button className="w-full bg-white text-red-500 font-bold py-5 rounded-[1.5rem] shadow-soft flex items-center justify-center gap-2 hover:bg-red-50 hover:shadow-none transition-all mt-8">
+          <button 
+            onClick={onLogout}
+            className="w-full bg-white text-red-500 font-bold py-5 rounded-[1.5rem] shadow-soft flex items-center justify-center gap-2 hover:bg-red-50 hover:shadow-none transition-all mt-8"
+          >
             <LogOut className="w-5 h-5" />
             Sair da Conta
           </button>
@@ -317,7 +322,7 @@ export default function Profile({ onAdminClick }: ProfileProps) {
       </div>
       
       <div className="space-y-4">
-        {onAdminClick && (
+        {user.role === 'admin' && onAdminClick && (
              <button 
                 onClick={onAdminClick}
                 className="w-full py-5 bg-slate-800 text-white text-sm font-bold rounded-[1.5rem] flex items-center justify-center gap-3 hover:bg-slate-700 transition-colors shadow-lg shadow-slate-300"

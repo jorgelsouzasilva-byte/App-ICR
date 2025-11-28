@@ -8,12 +8,18 @@ import LiveStream from './views/LiveStream';
 import Profile from './views/Profile';
 import SmallGroups from './views/SmallGroups';
 import AdminDashboard from './views/AdminDashboard';
-import { NavItem } from './types';
+import Login from './views/Login';
+import { NavItem, User } from './types';
 import { HandHeart, Users, ChevronRight, Play } from 'lucide-react';
 import ErrorBoundary from './components/ErrorBoundary';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<NavItem>(NavItem.HOME);
+  const [loggedInUser, setLoggedInUser] = useState<User | null>(null);
+
+  if (!loggedInUser) {
+    return <Login onLogin={setLoggedInUser} />;
+  }
 
   const renderContent = () => {
     switch (activeTab) {
@@ -26,14 +32,18 @@ export default function App() {
       case NavItem.LIVE_STREAM:
         return <LiveStream />;
       case NavItem.PROFILE:
-        return <Profile onAdminClick={() => setActiveTab(NavItem.ADMIN)} />;
+        return <Profile 
+                  user={loggedInUser} 
+                  onAdminClick={() => setActiveTab(NavItem.ADMIN)} 
+                  onLogout={() => setLoggedInUser(null)}
+                />;
       case NavItem.GROUPS:
         return <SmallGroups onBack={() => setActiveTab(NavItem.HOME)} />;
       case NavItem.ADMIN:
         return <AdminDashboard onBack={() => setActiveTab(NavItem.PROFILE)} />;
       case NavItem.HOME:
       default:
-        return <HomeDashboard onChangeTab={setActiveTab} />;
+        return <HomeDashboard user={loggedInUser} onChangeTab={setActiveTab} />;
     }
   };
 
@@ -57,7 +67,7 @@ export default function App() {
 }
 
 // Simple Home Dashboard Component
-const HomeDashboard = ({ onChangeTab }: { onChangeTab: (tab: NavItem) => void }) => {
+const HomeDashboard = ({ user, onChangeTab }: { user: User, onChangeTab: (tab: NavItem) => void }) => {
   return (
     <div className="p-6 space-y-8">
       
@@ -70,7 +80,7 @@ const HomeDashboard = ({ onChangeTab }: { onChangeTab: (tab: NavItem) => void })
         />
         <div className="absolute inset-0 bg-gradient-to-r from-blue-900/80 to-indigo-900/60 mix-blend-multiply" />
         <div className="absolute inset-0 p-8 flex flex-col justify-center text-white">
-            <h2 className="text-2xl font-bold mb-3">Bem-vinda, Sarah!</h2>
+            <h2 className="text-2xl font-bold mb-3">Bem-vindo(a), {user.name.split(' ')[0]}!</h2>
             <p className="opacity-95 leading-relaxed font-serif text-xl italic drop-shadow-md">
             "Porque, onde estiverem dois ou três reunidos em meu nome, aí estou eu no meio deles."
             </p>

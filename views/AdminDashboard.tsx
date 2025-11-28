@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { MOCK_ADMIN_STATS, MOCK_EVENTS, MOCK_STUDIES } from '../constants';
-import { ArrowLeft, Users, BookOpen, Calendar, Plus, BarChart3, PieChart, Baby, User, Edit2, Save, X, Trash2, ChevronDown, Check, Image as ImageIcon } from 'lucide-react';
-import { BibleStudy, CalendarEvent, StudyDay } from '../types';
+import { MOCK_ADMIN_STATS, MOCK_EVENTS, MOCK_STUDIES, MOCK_USERS } from '../constants';
+import { ArrowLeft, Users, BookOpen, Calendar, Plus, BarChart3, PieChart, Baby, User as UserIcon, Edit2, Save, X, Trash2, ChevronDown, Check, Image as ImageIcon, Search, Mail, Phone, MapPin, Award } from 'lucide-react';
+import { BibleStudy, CalendarEvent, StudyDay, User } from '../types';
 
 interface AdminDashboardProps {
   onBack: () => void;
 }
 
 export default function AdminDashboard({ onBack }: AdminDashboardProps) {
-  const [activeTab, setActiveTab] = useState<'geral' | 'estudos' | 'eventos'>('geral');
+  const [activeTab, setActiveTab] = useState<'geral' | 'estudos' | 'eventos' | 'membresia'>('geral');
   
   // Data State
   const [studies, setStudies] = useState(MOCK_STUDIES);
@@ -17,6 +17,10 @@ export default function AdminDashboard({ onBack }: AdminDashboardProps) {
   // Editor State
   const [editingStudy, setEditingStudy] = useState<BibleStudy | null>(null);
   const [editingEvent, setEditingEvent] = useState<Partial<CalendarEvent> | null>(null);
+
+  // Membership State
+  const [memberSearch, setMemberSearch] = useState('');
+  const [selectedMember, setSelectedMember] = useState<User | null>(null);
 
   // --- HANDLERS FOR STUDIES ---
   const handleEditStudy = (study: BibleStudy) => {
@@ -395,6 +399,64 @@ export default function AdminDashboard({ onBack }: AdminDashboardProps) {
         </div>
     );
   };
+  
+  const renderMemberDetails = () => {
+    if (!selectedMember) return null;
+    return (
+        <div className="fixed inset-0 z-50 bg-black/20 backdrop-blur-sm flex items-center justify-center p-6" onClick={() => setSelectedMember(null)}>
+            <div 
+                className="bg-white rounded-[2rem] shadow-soft-lg w-full max-w-md p-8 animate-in zoom-in-95 duration-300 relative"
+                onClick={(e) => e.stopPropagation()}
+            >
+                <button onClick={() => setSelectedMember(null)} className="absolute top-4 right-4 p-2 bg-slate-50 rounded-full text-slate-400 hover:text-slate-600">
+                    <X className="w-5 h-5" />
+                </button>
+
+                <div className="flex flex-col items-center pt-4 text-center">
+                    <img src={selectedMember.avatar} alt={selectedMember.name} className="w-24 h-24 rounded-full object-cover mb-4 shadow-lg" />
+                    <h2 className="text-2xl font-bold text-slate-800">{selectedMember.name}</h2>
+                    <p className="text-slate-400 text-sm font-medium">Membro desde {selectedMember.memberSince}</p>
+                </div>
+                
+                <div className="mt-8 space-y-4 text-sm">
+                     <div className="flex items-center gap-4 text-slate-600 bg-slate-50 p-3 rounded-xl">
+                        <Mail className="w-5 h-5 text-slate-400 shrink-0" />
+                        <span className="font-medium truncate">{selectedMember.email}</span>
+                    </div>
+                     <div className="flex items-center gap-4 text-slate-600 bg-slate-50 p-3 rounded-xl">
+                        <Phone className="w-5 h-5 text-slate-400 shrink-0" />
+                        <span className="font-medium">{selectedMember.phone}</span>
+                    </div>
+                     <div className="flex items-center gap-4 text-slate-600 bg-slate-50 p-3 rounded-xl">
+                        <MapPin className="w-5 h-5 text-slate-400 shrink-0" />
+                        <span className="font-medium">{selectedMember.group}</span>
+                    </div>
+                </div>
+
+                <div className="mt-8 pt-6 border-t border-slate-100 flex justify-around">
+                     <div className="text-center">
+                        <div className="text-xl font-bold text-blue-600">12</div>
+                        <div className="text-xs uppercase font-bold text-slate-400">Estudos</div>
+                    </div>
+                     <div className="text-center">
+                        <div className="text-xl font-bold text-amber-600">45</div>
+                        <div className="text-xs uppercase font-bold text-slate-400">Eventos</div>
+                    </div>
+                     <div className="text-center">
+                        <div className="text-xl font-bold text-emerald-600">R$850</div>
+                        <div className="text-xs uppercase font-bold text-slate-400">Doados</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+  };
+  
+  const filteredMembers = MOCK_USERS.filter(user => 
+    user.name.toLowerCase().includes(memberSearch.toLowerCase()) ||
+    user.email.toLowerCase().includes(memberSearch.toLowerCase()) ||
+    user.group.toLowerCase().includes(memberSearch.toLowerCase())
+  );
 
   return (
     <div className="min-h-full bg-[#f8f9fa] pb-20">
@@ -417,6 +479,12 @@ export default function AdminDashboard({ onBack }: AdminDashboardProps) {
                 className={`flex-1 py-3 rounded-xl text-xs font-bold transition-all uppercase tracking-wide ${activeTab === 'geral' ? 'bg-white text-slate-900 shadow-md' : 'text-slate-400 hover:text-white'}`}
             >
                 Visão Geral
+            </button>
+            <button 
+                onClick={() => setActiveTab('membresia')}
+                className={`flex-1 py-3 rounded-xl text-xs font-bold transition-all uppercase tracking-wide ${activeTab === 'membresia' ? 'bg-white text-slate-900 shadow-md' : 'text-slate-400 hover:text-white'}`}
+            >
+                Membros
             </button>
             <button 
                 onClick={() => setActiveTab('estudos')}
@@ -442,7 +510,7 @@ export default function AdminDashboard({ onBack }: AdminDashboardProps) {
                 <div className="bg-white p-6 rounded-[2rem] shadow-soft-lg flex items-center justify-between border border-white">
                     <div>
                         <p className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-2">Total de Membros</p>
-                        <h2 className="text-4xl font-black text-slate-800">{MOCK_ADMIN_STATS.totalMembers}</h2>
+                        <h2 className="text-4xl font-black text-slate-800">{MOCK_USERS.length}</h2>
                     </div>
                     <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
                         <Users className="w-7 h-7" />
@@ -498,13 +566,54 @@ export default function AdminDashboard({ onBack }: AdminDashboardProps) {
                     </div>
                     <div className="bg-white p-5 rounded-[2rem] shadow-soft border border-white">
                         <div className="flex items-center gap-2 mb-3 text-indigo-500">
-                            <User className="w-5 h-5" />
+                            <UserIcon className="w-5 h-5" />
                             <span className="text-[10px] font-bold uppercase tracking-wider">Solteiros</span>
                         </div>
                         <div className="text-2xl font-black text-slate-800">{MOCK_ADMIN_STATS.familyStats.single}</div>
                         <div className="text-xs font-bold text-slate-400 mt-1">Jovens/Adultos</div>
                     </div>
                  </div>
+            </div>
+        )}
+
+         {/* --- MEMBERSHIP DASHBOARD --- */}
+        {activeTab === 'membresia' && (
+            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <Search className="h-5 w-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                    </div>
+                    <input
+                        type="text"
+                        value={memberSearch}
+                        onChange={(e) => setMemberSearch(e.target.value)}
+                        placeholder="Buscar membro por nome, email ou grupo..."
+                        className="w-full pl-12 pr-4 py-4 border-none rounded-2xl bg-white shadow-inner-soft text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+                    />
+                </div>
+
+                <div className="space-y-2">
+                    {filteredMembers.map(member => (
+                        <button 
+                            key={member.id}
+                            onClick={() => setSelectedMember(member)}
+                            className="w-full text-left flex items-center gap-4 p-4 bg-white rounded-2xl shadow-soft hover:shadow-soft-lg hover:-translate-y-0.5 transition-all"
+                        >
+                            <img src={member.avatar} alt={member.name} className="w-12 h-12 rounded-full object-cover" />
+                            <div className="flex-1">
+                                <p className="font-bold text-slate-800">{member.name}</p>
+                                <p className="text-xs text-slate-500">{member.group}</p>
+                            </div>
+                             <span className={`text-[10px] font-bold px-2 py-1 rounded-lg ${
+                                member.role === 'admin' 
+                                ? 'bg-purple-100 text-purple-700' 
+                                : 'bg-slate-100 text-slate-500'
+                            }`}>
+                                {member.role === 'admin' ? 'Admin' : 'Membro'}
+                            </span>
+                        </button>
+                    ))}
+                </div>
             </div>
         )}
 
@@ -607,6 +716,7 @@ export default function AdminDashboard({ onBack }: AdminDashboardProps) {
 
       {renderStudyEditor()}
       {renderEventEditor()}
+      {renderMemberDetails()}
     </div>
   );
 }

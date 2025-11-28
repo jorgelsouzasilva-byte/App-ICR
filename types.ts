@@ -9,6 +9,17 @@ export enum NavItem {
   ADMIN = 'Admin',
 }
 
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  group: string;
+  memberSince: string;
+  avatar: string;
+  role: 'user' | 'admin';
+}
+
 export interface StudyDay {
   day: number;
   title: string;

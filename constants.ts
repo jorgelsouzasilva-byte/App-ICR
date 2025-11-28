@@ -1,4 +1,57 @@
-import { BibleStudy, CalendarEvent, Transaction, LiveStreamItem, SmallGroup } from './types';
+import { BibleStudy, CalendarEvent, Transaction, LiveStreamItem, SmallGroup, User } from './types';
+
+export const MOCK_USERS: User[] = [
+  {
+    id: 'user-admin',
+    name: 'Admin',
+    email: 'admin@lumina.com',
+    phone: '+55 (11) 98765-4321',
+    group: 'Equipe Pastoral',
+    memberSince: '2015',
+    avatar: 'https://picsum.photos/200/200?random=99',
+    role: 'admin',
+  },
+  {
+    id: 'user-sarah',
+    name: 'Sarah Jenkins',
+    email: 'sarah.j@example.com',
+    phone: '+1 (555) 123-4567',
+    group: 'GP Jardim São Marcos',
+    memberSince: '2019',
+    avatar: 'https://picsum.photos/200/200?random=1',
+    role: 'user',
+  },
+  {
+    id: 'user-carlos',
+    name: 'Carlos Andrade',
+    email: 'carlos.a@example.com',
+    phone: '+55 (21) 91234-5678',
+    group: 'GP Centro',
+    memberSince: '2021',
+    avatar: 'https://picsum.photos/200/200?random=2',
+    role: 'user',
+  },
+  {
+    id: 'user-maria',
+    name: 'Maria Oliveira',
+    email: 'maria.o@example.com',
+    phone: '+55 (31) 95678-1234',
+    group: 'GP Mulheres de Fé',
+    memberSince: '2017',
+    avatar: 'https://picsum.photos/200/200?random=3',
+    role: 'user',
+  },
+  {
+    id: 'user-pedro',
+    name: 'Pedro Martins',
+    email: 'pedro.m@example.com',
+    phone: '+55 (51) 99876-5432',
+    group: 'GP Jovens Universitários',
+    memberSince: '2022',
+    avatar: 'https://picsum.photos/200/200?random=4',
+    role: 'user',
+  }
+];
 
 export const MOCK_STUDIES: BibleStudy[] = [
   {
