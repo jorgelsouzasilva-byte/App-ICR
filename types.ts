@@ -66,6 +66,8 @@ export interface LiveStreamItem {
   isLive: boolean;
   views?: number;
   category: 'Culto' | 'Estudo' | 'Louvor' | 'Evento Especial';
+  // FIX: Added optional duration property to match its usage in LiveStream.tsx
+  duration?: string;
 }
 
 export interface SmallGroup {

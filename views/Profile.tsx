@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Mail, Phone, MapPin, Edit2, Settings, Award, ArrowLeft, Bell, Lock, Shield, LogOut, ChevronRight, Camera, Save, LayoutDashboard } from 'lucide-react';
 import { User } from '../types';
+import { supabase } from '../services/supabase';
 
 interface ProfileProps {
   user: User;
@@ -23,6 +24,7 @@ export default function Profile({ user, onAdminClick, onLogout }: ProfileProps) 
   // Effect to update profile state if the user prop changes (e.g., on re-login)
   useEffect(() => {
     setProfile(user);
+    setEditForm(user);
   }, [user]);
 
   const handleOpenEdit = () => {
@@ -30,10 +32,22 @@ export default function Profile({ user, onAdminClick, onLogout }: ProfileProps) 
     setShowEditProfile(true);
   };
 
-  const handleSaveProfile = () => {
-    setProfile(editForm);
-    // In a real app, you'd also send this update to your backend
-    setShowEditProfile(false);
+  const handleSaveProfile = async () => {
+    const { id, name, phone, group, avatar } = editForm;
+    
+    // Update the 'profiles' table in Supabase
+    const { error } = await supabase
+      .from('profiles')
+      .update({ name, phone, group, avatar })
+      .eq('id', id);
+
+    if (error) {
+      alert('Erro ao atualizar o perfil: ' + error.message);
+    } else {
+      setProfile(editForm); // Update local state on success
+      alert('Perfil salvo com sucesso!');
+      setShowEditProfile(false);
+    }
   };
 
   const handleAvatarChange = () => {
@@ -106,9 +120,8 @@ export default function Profile({ user, onAdminClick, onLogout }: ProfileProps) 
                         <input 
                             type="email"
                             value={editForm.email}
-                            onChange={(e) => setEditForm({...editForm, email: e.target.value})}
-                            className="w-full bg-white border-none shadow-inner-soft rounded-2xl px-5 py-4 font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all placeholder:text-slate-300"
-                            placeholder="nome@exemplo.com"
+                            disabled
+                            className="w-full bg-slate-100 border-none shadow-inner-soft rounded-2xl px-5 py-4 font-medium text-slate-500 cursor-not-allowed"
                         />
                     </div>
 
@@ -250,7 +263,6 @@ export default function Profile({ user, onAdminClick, onLogout }: ProfileProps) 
     );
   }
 
-  // --- MAIN PROFILE VIEW ---
   return (
     <div className="p-6 space-y-8 animate-in fade-in duration-500">
       {/* Profile Header */}
@@ -271,7 +283,7 @@ export default function Profile({ user, onAdminClick, onLogout }: ProfileProps) 
             </button>
         </div>
         <h2 className="text-2xl font-bold text-slate-800 mb-1">{profile.name}</h2>
-        <p className="text-slate-400 text-sm font-medium">Membro desde {profile.memberSince}</p>
+        <p className="text-slate-400 text-sm font-medium">Membro desde {profile.memberSince ? new Date(profile.memberSince).getFullYear() : 'N/A'}</p>
       </div>
 
       {/* Info Cards */}

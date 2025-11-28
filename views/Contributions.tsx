@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
-import { MOCK_TRANSACTIONS } from '../constants';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../services/supabase';
+import { Transaction } from '../types';
 import { CreditCard, DollarSign, Clock, ArrowUpRight, ArrowLeft, Filter, Search, ChevronRight } from 'lucide-react';
 
 export default function Contributions() {
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
   const [amount, setAmount] = useState<string>('');
   const [giveType, setGiveType] = useState('Dízimo');
   
@@ -13,8 +16,25 @@ export default function Contributions() {
   
   const transactionTypes = ['Todos', 'Dízimo', 'Oferta', 'Missões', 'Construção'];
 
+  useEffect(() => {
+    if(showHistoryOverlay) {
+        const fetchTransactions = async () => {
+            setLoading(true);
+            const { data, error } = await supabase.from('transactions').select('*').order('date', { ascending: false });
+            if (error) {
+                console.error('Error fetching transactions:', error);
+            } else if (data) {
+                setTransactions(data);
+            }
+            setLoading(false);
+        };
+        fetchTransactions();
+    }
+  }, [showHistoryOverlay]);
+
+
   // Filter Transactions Logic
-  const filteredHistory = MOCK_TRANSACTIONS.filter(t => {
+  const filteredHistory = transactions.filter(t => {
       const matchesType = historyFilter === 'Todos' || t.type === historyFilter;
       const matchesSearch = t.type.toLowerCase().includes(searchQuery.toLowerCase()) || 
                             t.amount.toString().includes(searchQuery) ||
@@ -79,7 +99,8 @@ export default function Contributions() {
 
             {/* List */}
             <div className="flex-1 overflow-y-auto px-6 pb-24 space-y-3">
-                {filteredHistory.length > 0 ? (
+                {loading ? <div className="text-center py-10 text-slate-400">Carregando...</div> :
+                filteredHistory.length > 0 ? (
                     filteredHistory.map((t) => (
                         <div key={t.id} className="bg-white p-5 rounded-[1.5rem] shadow-soft flex justify-between items-center animate-in fade-in slide-in-from-bottom-2 duration-500 border border-white">
                             <div className="flex items-center gap-4">
@@ -93,7 +114,7 @@ export default function Contributions() {
                                 </div>
                                 <div>
                                     <p className="font-bold text-slate-800 text-sm">{t.type}</p>
-                                    <p className="text-xs text-slate-400">{t.date}</p>
+                                    <p className="text-xs text-slate-400">{new Date(t.date).toLocaleDateString('pt-BR')}</p>
                                 </div>
                             </div>
                             <div className="text-right">
@@ -167,23 +188,9 @@ export default function Contributions() {
         </div>
         
         <div className="space-y-3">
-            {MOCK_TRANSACTIONS.slice(0, 3).map((t) => (
-                <div key={t.id} className="p-4 bg-white rounded-[1.5rem] shadow-soft flex justify-between items-center hover:translate-x-1 transition-transform cursor-default border border-white">
-                    <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400">
-                            <DollarSign className="w-5 h-5" />
-                        </div>
-                        <div>
-                            <p className="font-bold text-slate-700 text-sm">{t.type}</p>
-                            <p className="text-xs text-slate-400">{t.date}</p>
-                        </div>
-                    </div>
-                    <div className="text-right flex items-center gap-3">
-                        <p className="font-bold text-slate-800">+R${t.amount.toFixed(0)}</p>
-                        <ChevronRight className="w-4 h-4 text-slate-300" />
-                    </div>
-                </div>
-            ))}
+            <div className="p-4 bg-white rounded-[1.5rem] shadow-soft text-center text-slate-400 text-sm">
+                Clique em "Ver tudo" para carregar seu histórico.
+            </div>
         </div>
       </div>
     </div>

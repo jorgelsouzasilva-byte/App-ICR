@@ -1,12 +1,41 @@
-import React from 'react';
-import { MOCK_GROUPS } from '../constants';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../services/supabase';
+import { SmallGroup } from '../types';
 import { MapPin, Clock, Calendar, Users, Navigation, ArrowLeft } from 'lucide-react';
 
 interface SmallGroupsProps {
   onBack?: () => void;
 }
 
+const AppLoader = () => (
+    <div className="space-y-4">
+        {[...Array(3)].map((_, i) => (
+            <div key={i} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 p-5">
+                <div className="h-24 bg-slate-100 rounded-lg animate-pulse mb-4 -m-5"></div>
+                <div className="h-4 bg-slate-100 rounded w-3/4 animate-pulse mb-2"></div>
+                <div className="h-3 bg-slate-100 rounded w-1/2 animate-pulse"></div>
+            </div>
+        ))}
+    </div>
+);
+
 export default function SmallGroups({ onBack }: SmallGroupsProps) {
+  const [groups, setGroups] = useState<SmallGroup[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+      const fetchGroups = async () => {
+          setLoading(true);
+          const { data, error } = await supabase.from('groups').select('*');
+          if (error) {
+              console.error('Error fetching groups:', error);
+          } else if (data) {
+              setGroups(data);
+          }
+          setLoading(false);
+      };
+      fetchGroups();
+  }, []);
   
   const handleGetDirections = (address: string) => {
     // Encodes the address and opens Google Maps in a new tab
@@ -51,7 +80,7 @@ export default function SmallGroups({ onBack }: SmallGroupsProps) {
 
       {/* Groups List */}
       <div className="space-y-4">
-        {MOCK_GROUPS.map((group) => (
+        {loading ? <AppLoader /> : groups.map((group) => (
           <div 
             key={group.id} 
             className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 group hover:shadow-md transition-all"

@@ -1,9 +1,17 @@
-import React, { useState } from 'react';
-import { MOCK_STUDIES } from '../constants';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../services/supabase';
 import { BibleStudy } from '../types';
 import { ArrowLeft, Clock, User, Share2, BookOpen, PlayCircle, Lock, CheckCircle, X, Search } from 'lucide-react';
 
+const AppLoader = () => (
+    <div className="flex items-center justify-center h-full py-20">
+        <div className="w-8 h-8 border-2 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div>
+    </div>
+);
+
 export default function BibleStudies() {
+  const [studies, setStudies] = useState<BibleStudy[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedStudy, setSelectedStudy] = useState<BibleStudy | null>(null);
   const [startedStudies, setStartedStudies] = useState<Set<string>>(new Set());
   const [completedDays, setCompletedDays] = useState<Record<string, number[]>>({});
@@ -14,6 +22,20 @@ export default function BibleStudies() {
   const [searchQuery, setSearchQuery] = useState('');
   
   const filters = ['Todos', 'Novo Testamento', 'Velho Testamento', 'Temáticos', 'Família'];
+
+  useEffect(() => {
+    const fetchStudies = async () => {
+        setLoading(true);
+        const { data, error } = await supabase.from('studies').select('*');
+        if (error) {
+            console.error('Error fetching studies:', error);
+        } else if (data) {
+            setStudies(data);
+        }
+        setLoading(false);
+    };
+    fetchStudies();
+  }, []);
 
   const handleStartPlan = () => {
     if (selectedStudy) {
@@ -45,10 +67,10 @@ export default function BibleStudies() {
   };
 
   // Filter Logic
-  const filteredStudies = MOCK_STUDIES.filter(study => {
+  const filteredStudies = studies.filter(study => {
     const matchesCategory = activeFilter === 'Todos' || study.category === activeFilter;
     const matchesSearch = study.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          study.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          (study.author && study.author.toLowerCase().includes(searchQuery.toLowerCase())) ||
                           study.description.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
@@ -56,18 +78,19 @@ export default function BibleStudies() {
   if (selectedStudy) {
     const isStarted = startedStudies.has(selectedStudy.id);
     const studyCompletedDays = completedDays[selectedStudy.id] || [];
-    const totalDays = 3; // Mocked as 3 days for all studies in this demo
-    const progressPercent = Math.round((studyCompletedDays.length / totalDays) * 100);
+    const totalDays = selectedStudy.days?.length || 0;
+    const progressPercent = totalDays > 0 ? Math.round((studyCompletedDays.length / totalDays) * 100) : 0;
 
     // Reading View Overlay
     if (readingSession) {
+        const currentDayContent = selectedStudy.days?.find(d => d.day === readingSession.day);
         return (
             <div className="fixed inset-0 z-50 bg-[#f8f9fa] flex flex-col animate-in slide-in-from-bottom duration-300">
                {/* Header */}
                <div className="px-6 py-5 flex items-center justify-between bg-white/80 backdrop-blur-xl sticky top-0 z-10 shadow-sm">
                    <div className="flex flex-col">
                        <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Dia {readingSession.day}</span>
-                       <h2 className="text-lg font-bold text-slate-800 line-clamp-1">{selectedStudy.title}</h2>
+                       <h2 className="text-lg font-bold text-slate-800 line-clamp-1">{currentDayContent?.title || selectedStudy.title}</h2>
                    </div>
                    <button 
                       onClick={closeReading}
@@ -80,38 +103,17 @@ export default function BibleStudies() {
                {/* Content */}
                <div className="flex-1 overflow-y-auto p-6 scroll-smooth pb-32">
                   <div className="bg-white rounded-[2rem] p-6 shadow-soft-lg mb-6">
-                    <h3 className="text-2xl font-serif font-bold text-slate-900 mb-6">Caminhando na Luz</h3>
+                    <h3 className="text-2xl font-serif font-bold text-slate-900 mb-6">{currentDayContent?.title}</h3>
                     <div className="prose prose-lg prose-slate max-w-none">
-                        <p className="lead text-xl text-slate-600 italic border-l-4 border-blue-500 pl-4 mb-8">
-                            "Se, porém, andarmos na luz, como ele está na luz, temos comunhão uns com os outros, e o sangue de Jesus, seu Filho, nos purifica de todo pecado." 
-                            <span className="block text-sm font-sans font-bold not-italic text-slate-400 mt-2">— 1 João 1:7</span>
-                        </p>
-                        
-                        <p>
-                            Hoje, começamos nossa jornada entendendo o que significa verdadeiramente andar na luz. 
-                            A luz expõe as coisas. Quando acendemos uma luz em um quarto escuro, vemos tudo claramente — o bom e o ruim.
-                        </p>
-                        <p>
-                            Deus nos convida não a esconder nossa bagunça, mas a trazê-la para a Sua luz. É neste lugar de vulnerabilidade que a verdadeira cura e comunhão acontecem.
-                            Muitas vezes temos medo de que, se as pessoas realmente nos conhecessem, não nos amariam. Mas o Evangelho diz que Deus nos conhece plenamente e nos ama completamente.
-                        </p>
+                        {currentDayContent?.scriptureReference && (
+                            <p className="lead text-xl text-slate-600 italic border-l-4 border-blue-500 pl-4 mb-8">
+                                {`"${currentDayContent.content.split('. ')[0]}..."`}
+                                <span className="block text-sm font-sans font-bold not-italic text-slate-400 mt-2">— {currentDayContent.scriptureReference}</span>
+                            </p>
+                        )}
+                        <p>{currentDayContent?.content}</p>
                     </div>
                   </div>
-
-                  <div className="bg-amber-50 rounded-[2rem] p-6 shadow-soft border border-amber-100/50">
-                       <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                            <div className="p-2 bg-amber-100 rounded-xl text-amber-600">
-                                <BookOpen className="w-5 h-5" />
-                            </div>
-                            Reflexão
-                       </h4>
-                       <p className="text-slate-700 leading-relaxed">
-                          Qual é uma área da sua vida que você tem mantido no escuro? Tire um momento para orar e pedir a Deus coragem para trazê-la à Sua luz hoje.
-                       </p>
-                       <div className="mt-6 text-xs font-bold text-amber-400 uppercase tracking-wide opacity-80">
-                            Dica: Tire 5 minutos para meditar
-                       </div>
-                   </div>
                </div>
   
                {/* Footer Action */}
@@ -205,7 +207,8 @@ export default function BibleStudies() {
 
                 <h3 className="text-lg font-bold text-slate-800 mb-4 px-2">Cronograma</h3>
                 <div className="space-y-4">
-                     {[1, 2, 3].map((day) => {
+                     {(selectedStudy.days || []).map((dayData) => {
+                        const day = dayData.day;
                         const isDayCompleted = studyCompletedDays.includes(day);
                         const isUnlocked = day === 1 || studyCompletedDays.includes(day - 1);
                         
@@ -229,7 +232,7 @@ export default function BibleStudies() {
                                 )}
                             </div>
                             <div className="flex-1">
-                                <h4 className={`font-bold text-base ${isUnlocked ? 'text-slate-800' : 'text-slate-500'}`}>Dia {day}</h4>
+                                <h4 className={`font-bold text-base ${isUnlocked ? 'text-slate-800' : 'text-slate-500'}`}>{dayData.title}</h4>
                                 <p className="text-xs text-slate-400 font-medium">Leitura & Devocional</p>
                             </div>
                              {isUnlocked && !isDayCompleted && (
@@ -287,55 +290,59 @@ export default function BibleStudies() {
             </button>
         ))}
       </div>
+      
+      {loading ? <AppLoader /> : (
+        <>
+            <div className="grid grid-cols-3 gap-3">
+            {filteredStudies.map((study) => {
+            const isStarted = startedStudies.has(study.id);
+            const studyCompletedDays = completedDays[study.id] || [];
+            const progress = studyCompletedDays.length > 0 && study.days && study.days.length > 0
+                ? Math.round((studyCompletedDays.length / study.days.length) * 100) 
+                : 0;
 
-      <div className="grid grid-cols-3 gap-3">
-        {filteredStudies.map((study) => {
-          const isStarted = startedStudies.has(study.id);
-          const studyCompletedDays = completedDays[study.id] || [];
-          const progress = studyCompletedDays.length > 0 
-            ? Math.round((studyCompletedDays.length / 3) * 100) 
-            : 0;
-
-          return (
-          <div 
-            key={study.id}
-            onClick={() => setSelectedStudy(study)}
-            className="group flex flex-col gap-3 cursor-pointer animate-in fade-in duration-500"
-          >
-            <div className="aspect-[3/4] rounded-[1.5rem] overflow-hidden shadow-soft relative bg-white p-1.5">
-                <img 
-                    src={study.coverImage} 
-                    alt={study.title}
-                    className="w-full h-full object-cover rounded-[1.2rem] transition-transform duration-700 group-hover:scale-110"
-                />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-[1.2rem]" />
-                {isStarted && (
-                     <div className="absolute top-3 right-3 bg-white p-1.5 rounded-full shadow-md">
-                        <PlayCircle className="w-4 h-4 fill-blue-600 text-blue-600" />
-                     </div>
-                )}
+            return (
+            <div 
+                key={study.id}
+                onClick={() => setSelectedStudy(study)}
+                className="group flex flex-col gap-3 cursor-pointer animate-in fade-in duration-500"
+            >
+                <div className="aspect-[3/4] rounded-[1.5rem] overflow-hidden shadow-soft relative bg-white p-1.5">
+                    <img 
+                        src={study.coverImage} 
+                        alt={study.title}
+                        className="w-full h-full object-cover rounded-[1.2rem] transition-transform duration-700 group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-[1.2rem]" />
+                    {isStarted && (
+                        <div className="absolute top-3 right-3 bg-white p-1.5 rounded-full shadow-md">
+                            <PlayCircle className="w-4 h-4 fill-blue-600 text-blue-600" />
+                        </div>
+                    )}
+                </div>
+                <div className="px-1">
+                    <h3 className="text-xs font-bold text-slate-700 leading-tight group-hover:text-blue-600 transition-colors line-clamp-2">
+                    {study.title}
+                    </h3>
+                    {isStarted && (
+                        <div className="w-full bg-slate-200 h-1 rounded-full overflow-hidden mt-2">
+                            <div 
+                                className="bg-blue-600 h-full transition-all duration-300"
+                                style={{ width: `${Math.max(5, progress)}%` }}
+                            ></div>
+                        </div>
+                    )}
+                </div>
             </div>
-            <div className="px-1">
-                <h3 className="text-xs font-bold text-slate-700 leading-tight group-hover:text-blue-600 transition-colors line-clamp-2">
-                {study.title}
-                </h3>
-                {isStarted && (
-                    <div className="w-full bg-slate-200 h-1 rounded-full overflow-hidden mt-2">
-                        <div 
-                            className="bg-blue-600 h-full transition-all duration-300"
-                            style={{ width: `${Math.max(5, progress)}%` }}
-                        ></div>
-                    </div>
-                )}
+            );
+            })}
+        </div>
+        {filteredStudies.length === 0 && (
+            <div className="text-center py-12 text-slate-400">
+                <p>Nenhum estudo encontrado.</p>
             </div>
-          </div>
-          );
-        })}
-      </div>
-      {filteredStudies.length === 0 && (
-          <div className="text-center py-12 text-slate-400">
-              <p>Nenhum estudo encontrado.</p>
-          </div>
+        )}
+      </>
       )}
     </div>
   );

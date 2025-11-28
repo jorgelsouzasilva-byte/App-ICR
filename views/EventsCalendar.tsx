@@ -1,13 +1,40 @@
-import React, { useState } from 'react';
-import { MOCK_EVENTS } from '../constants';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../services/supabase';
 import { CalendarEvent } from '../types';
 import { ChevronLeft, ChevronRight, MapPin, Calendar as CalendarIcon, Search, Clock, ArrowLeft, Share2, CheckCircle } from 'lucide-react';
 
+const AppLoader = () => (
+    <div className="flex items-center justify-center h-full py-20">
+        <div className="w-8 h-8 border-2 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div>
+    </div>
+);
+
 export default function EventsCalendar() {
+  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [registeredEvents, setRegisteredEvents] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+      const fetchEvents = async () => {
+          setLoading(true);
+          const { data, error } = await supabase.from('events').select('*');
+          if (error) {
+              console.error('Error fetching events:', error);
+          } else if (data) {
+              // Convert date strings from Supabase to Date objects
+              const formattedData = data.map(event => ({
+                  ...event,
+                  date: new Date(event.date),
+              }));
+              setEvents(formattedData);
+          }
+          setLoading(false);
+      };
+      fetchEvents();
+  }, []);
 
   // Simple calendar logic
   const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
@@ -39,7 +66,7 @@ export default function EventsCalendar() {
   };
 
   // Filter events based on search query
-  const filteredEvents = MOCK_EVENTS.filter(event => {
+  const filteredEvents = events.filter(event => {
     const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           event.location.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesSearch;
@@ -182,8 +209,8 @@ export default function EventsCalendar() {
         </div>
 
         <div className="grid grid-cols-7 gap-2 mb-3 text-center">
-            {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map(d => (
-                <span key={d} className="text-[10px] font-bold text-slate-400 uppercase">{d}</span>
+            {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => (
+                <span key={i} className="text-[10px] font-bold text-slate-400 uppercase">{d}</span>
             ))}
         </div>
 
@@ -194,7 +221,7 @@ export default function EventsCalendar() {
                             currentDate.getMonth() === new Date().getMonth() &&
                             currentDate.getFullYear() === new Date().getFullYear();
             
-            const hasEvent = MOCK_EVENTS.some(e => 
+            const hasEvent = events.some(e => 
               e.date.getDate() === day && 
               e.date.getMonth() === currentDate.getMonth() && 
               e.date.getFullYear() === currentDate.getFullYear()
@@ -241,7 +268,7 @@ export default function EventsCalendar() {
         </div>
 
         <div className="space-y-4 min-h-[200px]">
-          {filteredEvents.length > 0 ? (
+          {loading ? <AppLoader /> : filteredEvents.length > 0 ? (
             filteredEvents.map(event => (
               <div 
                 key={event.id} 

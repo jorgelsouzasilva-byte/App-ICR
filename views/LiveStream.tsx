@@ -1,31 +1,52 @@
-import React, { useState } from 'react';
-import { MOCK_STREAMS } from '../constants';
+import React, { useState, useEffect } from 'react';
+import { supabase } from '../services/supabase';
 import { Play, Calendar, Users, Search } from 'lucide-react';
 import { LiveStreamItem } from '../types';
 
+const AppLoader = () => (
+    <div className="text-center py-12 bg-slate-100 rounded-3xl border border-dashed border-slate-300">
+        <p className="text-slate-400 text-sm">Carregando...</p>
+    </div>
+);
+
 export default function LiveStream() {
+  const [streams, setStreams] = useState<LiveStreamItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('Todos');
   const [searchQuery, setSearchQuery] = useState('');
   const filters = ['Todos', 'Culto', 'Estudo', 'Louvor', 'Evento Especial'];
 
-  const liveEvent = MOCK_STREAMS.find(s => s.isLive);
+  useEffect(() => {
+    const fetchStreams = async () => {
+        setLoading(true);
+        const { data, error } = await supabase.from('streams').select('*').order('date', { ascending: false });
+        if (error) {
+            console.error('Error fetching streams:', error);
+        } else if (data) {
+             const formattedData = data.map(stream => ({
+                  ...stream,
+                  dateObj: new Date(stream.date),
+              }));
+            setStreams(formattedData);
+        }
+        setLoading(false);
+    };
+    fetchStreams();
+  }, []);
+
+  const liveEvent = streams.find(s => s.isLive);
   
   // 1. Filter Logic
-  const filteredStreams = MOCK_STREAMS.filter(s => {
-      // Exclude live event from the past list
+  const filteredStreams = streams.filter(s => {
       if (s.isLive) return false;
-      
       const matchesCategory = activeFilter === 'Todos' || s.category === activeFilter;
       const matchesSearch = s.title.toLowerCase().includes(searchQuery.toLowerCase());
-      
       return matchesCategory && matchesSearch;
   });
 
   // 2. Grouping Logic (By Month)
   const groupedStreams = filteredStreams.reduce((acc, stream) => {
       if (!stream.dateObj) return acc;
-      
-      // Use Portuguese locale for month grouping
       const monthYear = stream.dateObj.toLocaleString('pt-BR', { month: 'long', year: 'numeric' });
       const capitalizedMonthYear = monthYear.charAt(0).toUpperCase() + monthYear.slice(1);
       
@@ -36,8 +57,7 @@ export default function LiveStream() {
       return acc;
   }, {} as Record<string, LiveStreamItem[]>);
 
-  // Get keys sorted (optional, but good if data isn't sorted)
-  const sortedMonths = Object.keys(groupedStreams); // Assuming mock data is somewhat ordered or we accept insertion order
+  const sortedMonths = Object.keys(groupedStreams);
 
   return (
     <div className="space-y-8 pb-8">
@@ -65,7 +85,7 @@ export default function LiveStream() {
            </>
         ) : (
             <div className="text-center text-slate-400">
-                <p>Nenhum evento ao vivo agora.</p>
+                <p>{loading ? 'Verificando...' : 'Nenhum evento ao vivo agora.'}</p>
             </div>
         )}
       </div>
@@ -109,7 +129,7 @@ export default function LiveStream() {
 
         {/* Grouped List */}
         <div className="space-y-6">
-            {sortedMonths.length > 0 ? (
+            {loading ? <AppLoader /> : sortedMonths.length > 0 ? (
                 sortedMonths.map(month => (
                     <div key={month} className="animate-in fade-in slide-in-from-bottom-2 duration-500">
                         <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 sticky top-0 bg-slate-50/95 backdrop-blur py-2 z-10 w-fit px-2 rounded-r-lg -ml-2">
@@ -132,7 +152,7 @@ export default function LiveStream() {
                                         <h4 className="font-bold text-slate-800 text-xs leading-tight mb-1 line-clamp-2">{event.title}</h4>
                                         <div className="flex items-center gap-1 text-slate-400 text-[10px]">
                                             <Calendar className="w-3 h-3" />
-                                            <span>{event.date}</span>
+                                            <span>{new Date(event.date).toLocaleDateString('pt-BR', {day: '2-digit', month: 'short'})} &bull; {event.duration || '1 hr'}</span>
                                         </div>
                                     </div>
                                 </div>
