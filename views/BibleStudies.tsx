@@ -13,8 +13,8 @@ export default function BibleStudies() {
   const [studies, setStudies] = useState<BibleStudy[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedStudy, setSelectedStudy] = useState<BibleStudy | null>(null);
-  const [startedStudies, setStartedStudies] = useState<Set<string>>(new Set());
-  const [completedDays, setCompletedDays] = useState<Record<string, number[]>>({});
+  const [startedStudies, setStartedStudies] = useState<Set<number>>(new Set());
+  const [completedDays, setCompletedDays] = useState<Record<number, number[]>>({});
   const [readingSession, setReadingSession] = useState<{ day: number } | null>(null);
   
   // Filter state
@@ -38,7 +38,7 @@ export default function BibleStudies() {
   }, []);
 
   const handleStartPlan = () => {
-    if (selectedStudy) {
+    if (selectedStudy?.id) {
         const newSet = new Set(startedStudies);
         newSet.add(selectedStudy.id);
         setStartedStudies(newSet);
@@ -50,7 +50,7 @@ export default function BibleStudies() {
   };
 
   const handleCompleteReading = () => {
-      if (selectedStudy && readingSession) {
+      if (selectedStudy?.id && readingSession) {
           const currentCompleted = completedDays[selectedStudy.id] || [];
           if (!currentCompleted.includes(readingSession.day)) {
                setCompletedDays({
@@ -76,8 +76,8 @@ export default function BibleStudies() {
   });
 
   if (selectedStudy) {
-    const isStarted = startedStudies.has(selectedStudy.id);
-    const studyCompletedDays = completedDays[selectedStudy.id] || [];
+    const isStarted = selectedStudy.id ? startedStudies.has(selectedStudy.id) : false;
+    const studyCompletedDays = selectedStudy.id ? completedDays[selectedStudy.id] || [] : [];
     const totalDays = selectedStudy.days?.length || 0;
     const progressPercent = totalDays > 0 ? Math.round((studyCompletedDays.length / totalDays) * 100) : 0;
 
@@ -295,46 +295,47 @@ export default function BibleStudies() {
         <>
             <div className="grid grid-cols-3 gap-3">
             {filteredStudies.map((study) => {
-            const isStarted = startedStudies.has(study.id);
-            const studyCompletedDays = completedDays[study.id] || [];
-            const progress = studyCompletedDays.length > 0 && study.days && study.days.length > 0
-                ? Math.round((studyCompletedDays.length / study.days.length) * 100) 
-                : 0;
+                if (!study.id) return null;
+                const isStarted = startedStudies.has(study.id);
+                const studyCompletedDays = completedDays[study.id] || [];
+                const progress = studyCompletedDays.length > 0 && study.days && study.days.length > 0
+                    ? Math.round((studyCompletedDays.length / study.days.length) * 100) 
+                    : 0;
 
-            return (
-            <div 
-                key={study.id}
-                onClick={() => setSelectedStudy(study)}
-                className="group flex flex-col gap-3 cursor-pointer animate-in fade-in duration-500"
-            >
-                <div className="aspect-[3/4] rounded-[1.5rem] overflow-hidden shadow-soft relative bg-white p-1.5">
-                    <img 
-                        src={study.coverImage} 
-                        alt={study.title}
-                        className="w-full h-full object-cover rounded-[1.2rem] transition-transform duration-700 group-hover:scale-110"
-                    />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-[1.2rem]" />
-                    {isStarted && (
-                        <div className="absolute top-3 right-3 bg-white p-1.5 rounded-full shadow-md">
-                            <PlayCircle className="w-4 h-4 fill-blue-600 text-blue-600" />
-                        </div>
-                    )}
+                return (
+                <div 
+                    key={study.id}
+                    onClick={() => setSelectedStudy(study)}
+                    className="group flex flex-col gap-3 cursor-pointer animate-in fade-in duration-500"
+                >
+                    <div className="aspect-[3/4] rounded-[1.5rem] overflow-hidden shadow-soft relative bg-white p-1.5">
+                        <img 
+                            src={study.coverImage} 
+                            alt={study.title}
+                            className="w-full h-full object-cover rounded-[1.2rem] transition-transform duration-700 group-hover:scale-110"
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-[1.2rem]" />
+                        {isStarted && (
+                            <div className="absolute top-3 right-3 bg-white p-1.5 rounded-full shadow-md">
+                                <PlayCircle className="w-4 h-4 fill-blue-600 text-blue-600" />
+                            </div>
+                        )}
+                    </div>
+                    <div className="px-1">
+                        <h3 className="text-xs font-bold text-slate-700 leading-tight group-hover:text-blue-600 transition-colors line-clamp-2">
+                        {study.title}
+                        </h3>
+                        {isStarted && (
+                            <div className="w-full bg-slate-200 h-1 rounded-full overflow-hidden mt-2">
+                                <div 
+                                    className="bg-blue-600 h-full transition-all duration-300"
+                                    style={{ width: `${Math.max(5, progress)}%` }}
+                                ></div>
+                            </div>
+                        )}
+                    </div>
                 </div>
-                <div className="px-1">
-                    <h3 className="text-xs font-bold text-slate-700 leading-tight group-hover:text-blue-600 transition-colors line-clamp-2">
-                    {study.title}
-                    </h3>
-                    {isStarted && (
-                        <div className="w-full bg-slate-200 h-1 rounded-full overflow-hidden mt-2">
-                            <div 
-                                className="bg-blue-600 h-full transition-all duration-300"
-                                style={{ width: `${Math.max(5, progress)}%` }}
-                            ></div>
-                        </div>
-                    )}
-                </div>
-            </div>
-            );
+                );
             })}
         </div>
         {filteredStudies.length === 0 && (

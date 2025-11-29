@@ -15,7 +15,7 @@ export default function EventsCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
-  const [registeredEvents, setRegisteredEvents] = useState<Set<string>>(new Set());
+  const [registeredEvents, setRegisteredEvents] = useState<Set<number>>(new Set());
 
   useEffect(() => {
       const fetchEvents = async () => {
@@ -56,10 +56,10 @@ export default function EventsCalendar() {
   };
 
   const handleRegister = () => {
-    if (selectedEvent) {
+    if (selectedEvent?.id) {
         setRegisteredEvents(prev => {
             const newSet = new Set(prev);
-            newSet.add(selectedEvent.id);
+            newSet.add(selectedEvent.id!);
             return newSet;
         });
     }
@@ -74,7 +74,7 @@ export default function EventsCalendar() {
 
   // --- EVENT DETAIL VIEW ---
   if (selectedEvent) {
-    const isRegistered = registeredEvents.has(selectedEvent.id);
+    const isRegistered = selectedEvent.id ? registeredEvents.has(selectedEvent.id) : false;
 
     return (
         <div className="fixed inset-0 z-50 bg-[#f8f9fa] flex flex-col animate-in slide-in-from-right duration-300 pb-20">

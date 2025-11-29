@@ -22,7 +22,7 @@ export default function AdminDashboard({ onBack }: AdminDashboardProps) {
 
   // Editor State
   const [editingStudy, setEditingStudy] = useState<BibleStudy | null>(null);
-  const [editingEvent, setEditingEvent] = useState<Partial<CalendarEvent> | null>(null);
+  const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
 
   // Membership State
   const [memberSearch, setMemberSearch] = useState('');
@@ -53,7 +53,6 @@ export default function AdminDashboard({ onBack }: AdminDashboardProps) {
 
   const handleCreateStudy = () => {
     setEditingStudy({
-        id: `new-${Date.now()}`,
         title: '',
         coverImage: 'https://picsum.photos/400/600',
         description: '',
@@ -68,23 +67,23 @@ export default function AdminDashboard({ onBack }: AdminDashboardProps) {
   const handleSaveStudy = async () => {
     if (!editingStudy) return;
 
-    const studyData = { ...editingStudy };
+    const { id, ...studyData } = editingStudy;
     let result;
-    if (studyData.id.startsWith('new-')) {
-        const { id, ...insertData } = studyData;
-        result = await supabase.from('studies').insert(insertData).select().single();
-    } else {
-        result = await supabase.from('studies').update(studyData).eq('id', studyData.id).select().single();
+
+    if (id) { // If ID exists, it's an update
+        result = await supabase.from('studies').update(studyData).eq('id', id).select().single();
+    } else { // No ID, it's an insert
+        result = await supabase.from('studies').insert(studyData).select().single();
     }
     
     const { data, error } = result;
     if (error) {
         alert('Erro ao salvar estudo: ' + error.message);
     } else if (data) {
-        if (studyData.id.startsWith('new-')) {
-            setStudies([data, ...studies]);
-        } else {
+        if (id) {
             setStudies(studies.map(s => s.id === data.id ? data : s));
+        } else {
+            setStudies([data, ...studies]);
         }
         setEditingStudy(null);
     }
@@ -121,7 +120,6 @@ export default function AdminDashboard({ onBack }: AdminDashboardProps) {
 
   const handleCreateEvent = () => {
       setEditingEvent({
-          id: `new-${Date.now()}`,
           title: '',
           date: new Date(),
           location: '',
@@ -134,13 +132,13 @@ export default function AdminDashboard({ onBack }: AdminDashboardProps) {
   const handleSaveEvent = async () => {
       if (!editingEvent || !editingEvent.title) return;
       
-      const eventData = { ...editingEvent };
+      const { id, ...eventData } = editingEvent;
       let result;
-      if (typeof eventData.id === 'string' && eventData.id.startsWith('new-')) {
-          const { id, ...insertData } = eventData;
-          result = await supabase.from('events').insert(insertData).select().single();
-      } else {
-          result = await supabase.from('events').update(eventData).eq('id', eventData.id).select().single();
+
+      if (id) { // If ID exists, it's an update
+          result = await supabase.from('events').update(eventData).eq('id', id).select().single();
+      } else { // No ID, it's an insert
+          result = await supabase.from('events').insert(eventData).select().single();
       }
 
       const { data, error } = result;
@@ -148,10 +146,10 @@ export default function AdminDashboard({ onBack }: AdminDashboardProps) {
           alert('Error saving event: ' + error.message);
       } else if (data) {
           const savedEvent = { ...data, date: new Date(data.date) };
-          if (typeof eventData.id === 'string' && eventData.id.startsWith('new-')) {
-              setEvents([savedEvent, ...events]);
-          } else {
+          if (id) {
               setEvents(events.map(e => e.id === savedEvent.id ? savedEvent : e));
+          } else {
+              setEvents([savedEvent, ...events]);
           }
           setEditingEvent(null);
       }
@@ -166,7 +164,7 @@ export default function AdminDashboard({ onBack }: AdminDashboardProps) {
              <div className="bg-white/80 backdrop-blur-xl px-6 py-5 flex items-center justify-between shadow-sm sticky top-0 z-10">
                 <div className="flex items-center gap-4">
                     <button onClick={() => setEditingStudy(null)} className="p-3 bg-white rounded-2xl shadow-soft text-slate-500 hover:text-slate-800 transition-colors"><X className="w-5 h-5" /></button>
-                    <h2 className="text-lg font-bold text-slate-800">{editingStudy.id.startsWith('new-') ? 'Novo Estudo' : 'Editar Estudo'}</h2>
+                    <h2 className="text-lg font-bold text-slate-800">{editingStudy.id ? 'Editar Estudo' : 'Novo Estudo'}</h2>
                 </div>
                 <button onClick={handleSaveStudy} className="bg-blue-600 text-white font-bold text-sm px-6 py-3 rounded-2xl hover:bg-blue-700 shadow-lg shadow-blue-200 flex items-center gap-2"><Save className="w-4 h-4" />Salvar</button>
             </div>
@@ -241,7 +239,7 @@ export default function AdminDashboard({ onBack }: AdminDashboardProps) {
             <div className="bg-white/80 backdrop-blur-xl px-6 py-5 flex items-center justify-between shadow-sm sticky top-0 z-10">
                 <div className="flex items-center gap-4">
                     <button onClick={() => setEditingEvent(null)} className="p-3 bg-white rounded-2xl shadow-soft text-slate-500 hover:text-slate-800 transition-colors"><X className="w-5 h-5" /></button>
-                    <h2 className="text-lg font-bold text-slate-800">{typeof editingEvent.id === 'string' && editingEvent.id.startsWith('new-') ? 'Novo Evento' : 'Editar Evento'}</h2>
+                    <h2 className="text-lg font-bold text-slate-800">{editingEvent.id ? 'Editar Evento' : 'Novo Evento'}</h2>
                 </div>
                 <button onClick={handleSaveEvent} className="bg-blue-600 text-white font-bold text-sm px-6 py-3 rounded-2xl hover:bg-blue-700 shadow-lg shadow-blue-200 flex items-center gap-2"><Save className="w-4 h-4" />Salvar</button>
             </div>

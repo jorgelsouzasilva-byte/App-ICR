@@ -10,7 +10,7 @@ export enum NavItem {
 }
 
 export interface User {
-  id: string;
+  id: string; // Stays as string because it's a UUID from auth.users
   name: string;
   email: string;
   phone: string;
@@ -28,7 +28,7 @@ export interface StudyDay {
 }
 
 export interface BibleStudy {
-  id: string;
+  id?: number; // Corrected to number (from bigint) and made optional
   title: string;
   coverImage: string;
   description: string;
@@ -40,7 +40,7 @@ export interface BibleStudy {
 }
 
 export interface CalendarEvent {
-  id: string;
+  id?: number; // Corrected to number (from bigint) and made optional
   title: string;
   date: Date;
   location: string;
@@ -50,7 +50,7 @@ export interface CalendarEvent {
 }
 
 export interface Transaction {
-  id: string;
+  id: number; // Corrected to number (from bigint)
   date: string;
   amount: number;
   type: 'Dízimo' | 'Oferta' | 'Missões' | 'Construção';
@@ -58,7 +58,7 @@ export interface Transaction {
 }
 
 export interface LiveStreamItem {
-  id: string;
+  id: number; // Corrected to number (from bigint)
   title: string;
   date: string; // Display string
   dateObj?: Date; // For sorting/grouping
@@ -66,12 +66,11 @@ export interface LiveStreamItem {
   isLive: boolean;
   views?: number;
   category: 'Culto' | 'Estudo' | 'Louvor' | 'Evento Especial';
-  // FIX: Added optional duration property to match its usage in LiveStream.tsx
   duration?: string;
 }
 
 export interface SmallGroup {
-  id: string;
+  id: number; // Corrected to number (from bigint)
   name: string;
   leader: string;
   address: string;

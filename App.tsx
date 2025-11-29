@@ -10,7 +10,7 @@ import SmallGroups from './views/SmallGroups';
 import AdminDashboard from './views/AdminDashboard';
 import Login from './views/Login';
 import { NavItem, User } from './types';
-import { HandHeart, Users, ChevronRight, Play } from 'lucide-react';
+import { HandHeart, Users, ChevronRight, Play, AlertTriangle, LogOut } from 'lucide-react';
 import ErrorBoundary from './components/ErrorBoundary';
 import { supabase } from './services/supabase';
 import { Session, User as SupabaseUser } from '@supabase/supabase-js';
@@ -22,12 +22,38 @@ const AppLoader = () => (
     </div>
 );
 
+// App-level Error Component for initialization failures
+const AppError = ({ message, onLogout }: { message: string, onLogout: () => void }) => (
+    <div className="flex flex-col items-center justify-center h-screen bg-[#f0f2f5] p-8 text-center">
+         <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center text-red-500 shadow-soft-lg mb-6">
+            <AlertTriangle className="w-10 h-10" />
+        </div>
+        <h1 className="text-xl font-bold text-slate-800 mb-2">Erro ao Carregar</h1>
+        <p className="text-sm text-slate-500 max-w-sm mb-8">
+            {message}
+        </p>
+         <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-3 bg-blue-600 text-white rounded-2xl text-sm font-semibold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all"
+        >
+            Tentar Novamente
+        </button>
+         <button
+            onClick={onLogout}
+            className="mt-4 px-6 py-2 text-slate-500 text-xs font-semibold"
+        >
+            Sair da Conta
+        </button>
+    </div>
+);
+
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<NavItem>(NavItem.HOME);
   const [session, setSession] = useState<Session | null>(null);
   const [loggedInUser, setLoggedInUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     // Initial check for an existing session on app load
@@ -37,6 +63,10 @@ export default function App() {
         await fetchUserProfile(session.user, 'INITIAL_SESSION');
       }
       setLoading(false);
+    }).catch((err) => {
+        console.error("Critical error on getSession:", err);
+        setError("Não foi possível conectar ao servidor de autenticação.");
+        setLoading(false);
     });
 
     // Listen for auth state changes (sign in, sign out)
@@ -46,6 +76,8 @@ export default function App() {
         if (event === 'SIGNED_OUT') {
           setLoggedInUser(null);
         } else if (session) {
+          // Reset error on new sign in attempt
+          setError(null);
           await fetchUserProfile(session.user, event);
         }
       }
@@ -58,14 +90,14 @@ export default function App() {
 
   const fetchUserProfile = async (user: SupabaseUser, event?: string) => {
     try {
-      let { data: profile, error } = await supabase
+      let { data: profile, error: fetchError } = await supabase
         .from('profiles')
         .select(`*`)
         .eq('id', user.id)
         .single();
       
-      if (error && error.code !== 'PGRST116') { // PGRST116: row not found
-        throw error;
+      if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116: row not found
+        throw fetchError;
       }
 
       // If profile doesn't exist and this is a sign-in event (first time after sign-up), create one.
@@ -105,12 +137,14 @@ export default function App() {
         });
       }
     } catch (error: any) {
-      console.error('Error fetching/creating user profile:', error.message || JSON.stringify(error, null, 2));
+      console.error('Error fetching/creating user profile:', error);
+      setError(`Não foi possível carregar seu perfil. Verifique sua conexão ou a configuração do banco de dados (Tabela: profiles). Detalhes: ${error.message}`);
     }
   };
   
   const handleLogout = async () => {
       setLoading(true);
+      setError(null);
       const { error } = await supabase.auth.signOut();
       if(error) console.error("Error signing out:", error);
       // The onAuthStateChange listener will handle setting user to null.
@@ -122,6 +156,10 @@ export default function App() {
     return <AppLoader />;
   }
 
+  if (error) {
+    return <AppError message={error} onLogout={handleLogout} />;
+  }
+  
   if (!loggedInUser) {
     return <Login />;
   }
