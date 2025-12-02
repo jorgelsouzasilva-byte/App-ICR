@@ -1,4 +1,4 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React, { ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RotateCw } from 'lucide-react';
 
 interface Props {
@@ -9,16 +9,13 @@ interface State {
   hasError: boolean;
 }
 
-class ErrorBoundary extends Component<Props, State> {
-  // FIX: Changed state initialization to use a constructor.
-  // This resolves potential tooling issues with the class field syntax that can
-  // lead to "Property 'props' does not exist" errors.
-  constructor(props: Props) {
-    super(props);
-    this.state = {
-      hasError: false
-    };
-  }
+// FIX: Changed to `React.Component` to resolve potential type ambiguity.
+class ErrorBoundary extends React.Component<Props, State> {
+  // FIX: Switched to class field for state initialization. This is a more modern syntax
+  // and can resolve tooling issues that sometimes arise with constructors.
+  public state: State = {
+    hasError: false
+  };
 
   static getDerivedStateFromError(_: Error): State {
     // Atualiza o estado para que a próxima renderização mostre a UI de fallback.

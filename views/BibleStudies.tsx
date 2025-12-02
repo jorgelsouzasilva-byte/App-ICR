@@ -2,38 +2,37 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import { BibleStudy } from '../types';
 import { ArrowLeft, Clock, User, Share2, BookOpen, PlayCircle, Lock, CheckCircle, X, Search } from 'lucide-react';
-
-const AppLoader = () => (
-    <div className="flex items-center justify-center h-full py-20">
-        <div className="w-8 h-8 border-2 border-slate-200 border-t-blue-600 rounded-full animate-spin"></div>
-    </div>
-);
+import DataFetchHandler from '../components/DataFetchHandler';
 
 export default function BibleStudies() {
   const [studies, setStudies] = useState<BibleStudy[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
   const [selectedStudy, setSelectedStudy] = useState<BibleStudy | null>(null);
   const [startedStudies, setStartedStudies] = useState<Set<number>>(new Set());
   const [completedDays, setCompletedDays] = useState<Record<number, number[]>>({});
   const [readingSession, setReadingSession] = useState<{ day: number } | null>(null);
   
-  // Filter state
   const [activeFilter, setActiveFilter] = useState<string>('Todos');
   const [searchQuery, setSearchQuery] = useState('');
   
   const filters = ['Todos', 'Novo Testamento', 'Velho Testamento', 'Temáticos', 'Família'];
 
+  const fetchStudies = async () => {
+      setLoading(true);
+      setError(null);
+      const { data, error: dbError } = await supabase.from('studies').select('*');
+      if (dbError) {
+          console.error('Error fetching studies:', dbError);
+          setError(dbError);
+      } else if (data) {
+          setStudies(data);
+      }
+      setLoading(false);
+  };
+
   useEffect(() => {
-    const fetchStudies = async () => {
-        setLoading(true);
-        const { data, error } = await supabase.from('studies').select('*');
-        if (error) {
-            console.error('Error fetching studies:', error);
-        } else if (data) {
-            setStudies(data);
-        }
-        setLoading(false);
-    };
     fetchStudies();
   }, []);
 
@@ -291,60 +290,75 @@ export default function BibleStudies() {
         ))}
       </div>
       
-      {loading ? <AppLoader /> : (
-        <>
-            <div className="grid grid-cols-3 gap-3">
-            {filteredStudies.map((study) => {
-                if (!study.id) return null;
-                const isStarted = startedStudies.has(study.id);
-                const studyCompletedDays = completedDays[study.id] || [];
-                const progress = studyCompletedDays.length > 0 && study.days && study.days.length > 0
-                    ? Math.round((studyCompletedDays.length / study.days.length) * 100) 
-                    : 0;
+      <DataFetchHandler
+        loading={loading}
+        error={error}
+        data={studies}
+        onRetry={fetchStudies}
+        emptyComponent={<div className="text-center py-12 text-slate-400"><p>Nenhum estudo foi cadastrado ainda.</p></div>}
+        render={(data) => {
+          // FIX: Cast `data` to `BibleStudy[]` to ensure correct type inference in array methods.
+          const studiesToRender = (data as BibleStudy[]).filter(study => {
+              const matchesCategory = activeFilter === 'Todos' || study.category === activeFilter;
+              const matchesSearch = study.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                    (study.author && study.author.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                                    study.description.toLowerCase().includes(searchQuery.toLowerCase());
+              return matchesCategory && matchesSearch;
+          });
 
-                return (
-                <div 
-                    key={study.id}
-                    onClick={() => setSelectedStudy(study)}
-                    className="group flex flex-col gap-3 cursor-pointer animate-in fade-in duration-500"
-                >
-                    <div className="aspect-[3/4] rounded-[1.5rem] overflow-hidden shadow-soft relative bg-white p-1.5">
-                        <img 
-                            src={study.coverImage} 
-                            alt={study.title}
-                            className="w-full h-full object-cover rounded-[1.2rem] transition-transform duration-700 group-hover:scale-110"
-                        />
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-[1.2rem]" />
-                        {isStarted && (
-                            <div className="absolute top-3 right-3 bg-white p-1.5 rounded-full shadow-md">
-                                <PlayCircle className="w-4 h-4 fill-blue-600 text-blue-600" />
-                            </div>
-                        )}
-                    </div>
-                    <div className="px-1">
-                        <h3 className="text-xs font-bold text-slate-700 leading-tight group-hover:text-blue-600 transition-colors line-clamp-2">
-                        {study.title}
-                        </h3>
-                        {isStarted && (
-                            <div className="w-full bg-slate-200 h-1 rounded-full overflow-hidden mt-2">
-                                <div 
-                                    className="bg-blue-600 h-full transition-all duration-300"
-                                    style={{ width: `${Math.max(5, progress)}%` }}
-                                ></div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-                );
-            })}
-        </div>
-        {filteredStudies.length === 0 && (
-            <div className="text-center py-12 text-slate-400">
-                <p>Nenhum estudo encontrado.</p>
+          if (studiesToRender.length === 0 && (searchQuery || activeFilter !== 'Todos')) {
+            return <div className="text-center py-12 text-slate-400"><p>Nenhum estudo encontrado para os filtros selecionados.</p></div>;
+          }
+
+          return (
+            <div className="grid grid-cols-3 gap-3">
+              {studiesToRender.map((study) => {
+                  if (!study.id) return null;
+                  const isStarted = startedStudies.has(study.id);
+                  const studyCompletedDays = completedDays[study.id] || [];
+                  const progress = studyCompletedDays.length > 0 && study.days && study.days.length > 0
+                      ? Math.round((studyCompletedDays.length / study.days.length) * 100) 
+                      : 0;
+
+                  return (
+                  <div 
+                      key={study.id}
+                      onClick={() => setSelectedStudy(study)}
+                      className="group flex flex-col gap-3 cursor-pointer animate-in fade-in duration-500"
+                  >
+                      <div className="aspect-[3/4] rounded-[1.5rem] overflow-hidden shadow-soft relative bg-white p-1.5">
+                          <img 
+                              src={study.coverImage} 
+                              alt={study.title}
+                              className="w-full h-full object-cover rounded-[1.2rem] transition-transform duration-700 group-hover:scale-110"
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-[1.2rem]" />
+                          {isStarted && (
+                              <div className="absolute top-3 right-3 bg-white p-1.5 rounded-full shadow-md">
+                                  <PlayCircle className="w-4 h-4 fill-blue-600 text-blue-600" />
+                              </div>
+                          )}
+                      </div>
+                      <div className="px-1">
+                          <h3 className="text-xs font-bold text-slate-700 leading-tight group-hover:text-blue-600 transition-colors line-clamp-2">
+                          {study.title}
+                          </h3>
+                          {isStarted && (
+                              <div className="w-full bg-slate-200 h-1 rounded-full overflow-hidden mt-2">
+                                  <div 
+                                      className="bg-blue-600 h-full transition-all duration-300"
+                                      style={{ width: `${Math.max(5, progress)}%` }}
+                                  ></div>
+                              </div>
+                          )}
+                      </div>
+                  </div>
+                  );
+              })}
             </div>
-        )}
-      </>
-      )}
+          );
+        }}
+      />
     </div>
   );
 }

@@ -2,35 +2,35 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import { Play, Calendar, Users, Search } from 'lucide-react';
 import { LiveStreamItem } from '../types';
-
-const AppLoader = () => (
-    <div className="text-center py-12 bg-slate-100 rounded-3xl border border-dashed border-slate-300">
-        <p className="text-slate-400 text-sm">Carregando...</p>
-    </div>
-);
+import DataFetchHandler from '../components/DataFetchHandler';
 
 export default function LiveStream() {
   const [streams, setStreams] = useState<LiveStreamItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
   const [activeFilter, setActiveFilter] = useState('Todos');
   const [searchQuery, setSearchQuery] = useState('');
   const filters = ['Todos', 'Culto', 'Estudo', 'Louvor', 'Evento Especial'];
 
+  const fetchStreams = async () => {
+      setLoading(true);
+      setError(null);
+      const { data, error: dbError } = await supabase.from('streams').select('*').order('date', { ascending: false });
+      if (dbError) {
+          console.error('Error fetching streams:', dbError);
+          setError(dbError);
+      } else if (data) {
+           const formattedData = data.map(stream => ({
+                ...stream,
+                dateObj: new Date(stream.date),
+            }));
+          setStreams(formattedData);
+      }
+      setLoading(false);
+  };
+  
   useEffect(() => {
-    const fetchStreams = async () => {
-        setLoading(true);
-        const { data, error } = await supabase.from('streams').select('*').order('date', { ascending: false });
-        if (error) {
-            console.error('Error fetching streams:', error);
-        } else if (data) {
-             const formattedData = data.map(stream => ({
-                  ...stream,
-                  dateObj: new Date(stream.date),
-              }));
-            setStreams(formattedData);
-        }
-        setLoading(false);
-    };
     fetchStreams();
   }, []);
 
@@ -96,7 +96,6 @@ export default function LiveStream() {
              <h3 className="text-lg font-bold text-slate-800">Mensagens Anteriores</h3>
         </div>
 
-        {/* Search Input */}
         <div className="relative mb-6 group">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <Search className="h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
@@ -110,7 +109,6 @@ export default function LiveStream() {
           />
         </div>
        
-        {/* Filters */}
         <div className="flex gap-2 overflow-x-auto pb-4 mb-2 -mx-6 px-6 no-scrollbar">
             {filters.map((filter) => (
                 <button
@@ -127,10 +125,19 @@ export default function LiveStream() {
             ))}
         </div>
 
-        {/* Grouped List */}
         <div className="space-y-6">
-            {loading ? <AppLoader /> : sortedMonths.length > 0 ? (
-                sortedMonths.map(month => (
+            <DataFetchHandler
+                loading={loading}
+                error={error}
+                data={streams}
+                onRetry={fetchStreams}
+                emptyComponent={<div className="text-center py-12 bg-slate-100 rounded-3xl border border-dashed border-slate-300"><p className="text-slate-400 text-sm">Nenhuma gravação encontrada.</p></div>}
+                render={(data) => {
+                  const sortedMonthsToRender = Object.keys(groupedStreams);
+                  if (sortedMonthsToRender.length === 0) {
+                     return <div className="text-center py-12 bg-slate-100 rounded-3xl border border-dashed border-slate-300"><p className="text-slate-400 text-sm">Nenhuma gravação encontrada para os filtros.</p></div>
+                  }
+                  return sortedMonthsToRender.map(month => (
                     <div key={month} className="animate-in fade-in slide-in-from-bottom-2 duration-500">
                         <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 sticky top-0 bg-slate-50/95 backdrop-blur py-2 z-10 w-fit px-2 rounded-r-lg -ml-2">
                             {month}
@@ -159,12 +166,9 @@ export default function LiveStream() {
                             ))}
                         </div>
                     </div>
-                ))
-            ) : (
-                <div className="text-center py-12 bg-slate-100 rounded-3xl border border-dashed border-slate-300">
-                    <p className="text-slate-400 text-sm">Nenhuma gravação encontrada.</p>
-                </div>
-            )}
+                  ));
+                }}
+            />
         </div>
       </div>
     </div>

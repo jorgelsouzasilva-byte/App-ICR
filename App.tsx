@@ -50,36 +50,26 @@ const AppError = ({ message, onLogout }: { message: string, onLogout: () => void
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<NavItem>(NavItem.HOME);
-  const [session, setSession] = useState<Session | null>(null);
   const [loggedInUser, setLoggedInUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Initial check for an existing session on app load
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      if (session) {
-        await fetchUserProfile(session.user, 'INITIAL_SESSION');
-      }
-      setLoading(false);
-    }).catch((err) => {
-        console.error("Critical error on getSession:", err);
-        setError("Não foi possível conectar ao servidor de autenticação.");
-        setLoading(false);
-    });
+    setLoading(true);
 
-    // Listen for auth state changes (sign in, sign out)
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        setSession(session);
-        if (event === 'SIGNED_OUT') {
-          setLoggedInUser(null);
-        } else if (session) {
-          // Reset error on new sign in attempt
-          setError(null);
+        if (session) {
+          setError(null); // Reset error on new session
           await fetchUserProfile(session.user, event);
+        } else {
+          // User is signed out or session expired
+          setLoggedInUser(null);
         }
+        
+        // This is crucial: setLoading(false) after the async profile fetch is done
+        // or we know there's no session. This guarantees the loading screen will disappear.
+        setLoading(false);
       }
     );
 
@@ -135,6 +125,10 @@ export default function App() {
           avatar: profile.avatar,
           role: profile.role,
         });
+      } else {
+        // This can happen if a user is deleted from auth but the session lingers.
+        // Or if the profile somehow failed to be created.
+        throw new Error("O perfil do usuário não foi encontrado e não pôde ser criado.");
       }
     } catch (error: any) {
       console.error('Error fetching/creating user profile:', error);
