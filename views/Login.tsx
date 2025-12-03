@@ -6,6 +6,7 @@ export default function Login() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [group, setGroup] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -28,6 +29,7 @@ export default function Login() {
             data: {
               name,
               phone,
+              group,
             },
           },
         });
@@ -89,6 +91,16 @@ export default function Login() {
                   onChange={(e) => setPhone(e.target.value)}
                   className="w-full bg-slate-50 border-none shadow-inner-soft rounded-2xl px-5 py-4 font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all placeholder:text-slate-300"
                   placeholder="(Opcional)"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-400 uppercase ml-1">Pequeno Grupo</label>
+                <input
+                  type="text"
+                  value={group}
+                  onChange={(e) => setGroup(e.target.value)}
+                  className="w-full bg-slate-50 border-none shadow-inner-soft rounded-2xl px-5 py-4 font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all placeholder:text-slate-300"
+                  placeholder="Ex: Grupo de Jovens"
                 />
               </div>
             </>

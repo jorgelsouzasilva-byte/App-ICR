@@ -7,28 +7,25 @@ interface ProfileProps {
   user: User;
   onAdminClick?: () => void;
   onLogout: () => void;
+  onProfileUpdate: (updatedUser: User) => void;
 }
 
-export default function Profile({ user, onAdminClick, onLogout }: ProfileProps) {
+export default function Profile({ user, onAdminClick, onLogout, onProfileUpdate }: ProfileProps) {
   const [showSettings, setShowSettings] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [emailUpdates, setEmailUpdates] = useState(true);
 
-  // Profile Data State, now initialized from props
-  const [profile, setProfile] = useState<User>(user);
+  // Temporary state for the edit form, synced with user prop
+  const [editForm, setEditForm] = useState(user);
 
-  // Temporary state for the edit form
-  const [editForm, setEditForm] = useState(profile);
-
-  // Effect to update profile state if the user prop changes (e.g., on re-login)
+  // Effect to update form state if the user prop changes
   useEffect(() => {
-    setProfile(user);
     setEditForm(user);
   }, [user]);
 
   const handleOpenEdit = () => {
-    setEditForm(profile);
+    setEditForm(user); // Ensure form starts with the latest user data
     setShowEditProfile(true);
   };
 
@@ -44,7 +41,7 @@ export default function Profile({ user, onAdminClick, onLogout }: ProfileProps) 
     if (error) {
       alert('Erro ao atualizar o perfil: ' + error.message);
     } else {
-      setProfile(editForm); // Update local state on success
+      onProfileUpdate(editForm); // Update global state on success
       alert('Perfil salvo com sucesso!');
       setShowEditProfile(false);
     }
@@ -270,7 +267,7 @@ export default function Profile({ user, onAdminClick, onLogout }: ProfileProps) 
         <div className="relative mb-6">
             <div className="w-32 h-32 rounded-full p-2 bg-white shadow-soft-lg">
                 <img 
-                    src={profile.avatar} 
+                    src={user.avatar} 
                     alt="Profile" 
                     className="w-full h-full rounded-full object-cover" 
                 />
@@ -282,8 +279,8 @@ export default function Profile({ user, onAdminClick, onLogout }: ProfileProps) 
                 <Edit2 className="w-4 h-4" />
             </button>
         </div>
-        <h2 className="text-2xl font-bold text-slate-800 mb-1">{profile.name}</h2>
-        <p className="text-slate-400 text-sm font-medium">Membro desde {profile.memberSince ? new Date(profile.memberSince).getFullYear() : 'N/A'}</p>
+        <h2 className="text-2xl font-bold text-slate-800 mb-1">{user.name}</h2>
+        <p className="text-slate-400 text-sm font-medium">Membro desde {user.memberSince ? new Date(user.memberSince).getFullYear() : 'N/A'}</p>
       </div>
 
       {/* Info Cards */}
@@ -292,19 +289,19 @@ export default function Profile({ user, onAdminClick, onLogout }: ProfileProps) 
             <div className="w-10 h-10 rounded-2xl bg-slate-50 flex items-center justify-center shrink-0">
                 <Mail className="w-5 h-5 text-slate-400" />
             </div>
-            <span className="text-sm font-medium">{profile.email}</span>
+            <span className="text-sm font-medium">{user.email}</span>
         </div>
         <div className="flex items-center gap-4 text-slate-600">
              <div className="w-10 h-10 rounded-2xl bg-slate-50 flex items-center justify-center shrink-0">
                 <Phone className="w-5 h-5 text-slate-400" />
             </div>
-            <span className="text-sm font-medium">{profile.phone}</span>
+            <span className="text-sm font-medium">{user.phone}</span>
         </div>
         <div className="flex items-center gap-4 text-slate-600">
              <div className="w-10 h-10 rounded-2xl bg-slate-50 flex items-center justify-center shrink-0">
                 <MapPin className="w-5 h-5 text-slate-400" />
             </div>
-            <span className="text-sm font-medium">{profile.group}</span>
+            <span className="text-sm font-medium">{user.group}</span>
         </div>
       </div>
 

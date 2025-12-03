@@ -17,6 +17,11 @@ class ErrorBoundary extends React.Component<Props, State> {
     hasError: false
   };
 
+  // FIX: Explicitly add constructor to pass props to super() which can help resolve type inference issues.
+  constructor(props: Props) {
+    super(props);
+  }
+
   static getDerivedStateFromError(_: Error): State {
     // Atualiza o estado para que a próxima renderização mostre a UI de fallback.
     return { hasError: true };

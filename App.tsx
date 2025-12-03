@@ -94,6 +94,8 @@ export default function App() {
       if (!profile && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION')) {
         const name = user.user_metadata.name || user.email?.split('@')[0] || 'Novo Usuário';
         const phone = user.user_metadata.phone || '';
+        const group = user.user_metadata.group || 'Não definido';
+
 
         const { data: newProfile, error: insertError } = await supabase
           .from('profiles')
@@ -102,7 +104,7 @@ export default function App() {
             email: user.email,
             name: name,
             phone: phone,
-            group: 'Não definido',
+            group: group,
             memberSince: new Date().toISOString(),
             avatar: `https://picsum.photos/seed/${user.id}/200`,
             role: 'user',
@@ -146,6 +148,10 @@ export default function App() {
       setLoading(false);
   }
 
+  const handleProfileUpdate = (updatedProfile: User) => {
+    setLoggedInUser(updatedProfile);
+  };
+
   if (loading) {
     return <AppLoader />;
   }
@@ -173,6 +179,7 @@ export default function App() {
                   user={loggedInUser} 
                   onAdminClick={() => setActiveTab(NavItem.ADMIN)} 
                   onLogout={handleLogout}
+                  onProfileUpdate={handleProfileUpdate}
                 />;
       case NavItem.GROUPS:
         return <SmallGroups onBack={() => setActiveTab(NavItem.HOME)} />;
