@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavItem } from '../types';
 import { Home, BookOpen, Calendar, Heart, Tv, User } from 'lucide-react';
 
